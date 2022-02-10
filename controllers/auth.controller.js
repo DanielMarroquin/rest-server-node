@@ -3,6 +3,8 @@ const bcryptjs = require ('bcryptjs');
 
 const User = require('../models/users');
 const { generateJwt } = require('../helpers/generate-jwt');
+const { googleVerify } = require('../helpers/google-verify');
+const { json } = require('express/lib/response');
 
 const login = async ( req, res = response ) => {
 
@@ -45,13 +47,65 @@ const login = async ( req, res = response ) => {
             msg: 'Función no retorna datos'
         });
     }
+}
 
-    // res.json({
-    //     msg: 'Login Access Ok'
-    // })
+const googleSingIn = async ( req, res ) => {
+
+    const { id_token } = req.body
+
+    try {
+        
+        // const googleUser = await googleVerify( id_token );
+        // console.log( googleUser );
+        const { name, picture, email } = await googleVerify( id_token );
+
+        let user = await User.findOne({ email });
+
+        if ( !user ) {
+            // Si no existe  lo creo
+            const data = {
+                name,
+                email,
+                password: ':P',
+                picture,
+                role: 'USER_ROLE',
+                google: true
+            };
+
+            user = new User(data);
+            await user.save();
+        }
+
+        // Si el usuario de Google no esta en DB
+
+        if ( !user.status ) {
+            return res.status(401).json({
+                msg: 'Comuniquese con el Administrador, usuario bloqueado'
+            });
+        }
+
+        // Generar el JWT
+        const token = await generateJwt( user.id );
+
+        res.json({
+            // msg: 'Login Correcto',
+            user,
+            token
+        });
+
+    } catch (error) {
+
+        console.log(user, token, 'error google');
+        res.status(400).json({
+            // ok: false,
+            msg: 'Token de Google no se pudo verificar'
+        });
+    }
+
 }
 
 
 module.exports = {
-    login
+    login,
+    googleSingIn
 }
