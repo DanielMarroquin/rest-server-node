@@ -97,7 +97,7 @@ const googleSingIn = async ( req, res ) => {
 
         console.log(user, token, 'error google');
         res.status(400).json({
-            // ok: false,
+            ok: false,
             msg: 'Token de Google no se pudo verificar'
         });
     }
